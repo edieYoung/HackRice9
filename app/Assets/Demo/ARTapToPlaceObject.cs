@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.Experimental.XR;
 
@@ -13,25 +14,31 @@ public class ARTapToPlaceObject : MonoBehaviour
     // Start is called before the first frame update
     public GameObject placementIndicator;
 
-    public GameObject placeObject;
+    private GameObject placeObject;
+
+    private bool objectPlaced;
     void Start()
     {
         arOrigin = FindObjectOfType<ARSessionOrigin>();
+        placeObject = Instantiate(Resources.Load("Couch_3", typeof(GameObject))) as GameObject;
+        objectPlaced = false;
     }
 
     // Update is called once per frame
     void Update()
     {
-        updatePlacementPose();
-        updatePlacementIndicator();
-
-        if (placementPoseValid && Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
-            placeMyObject();
+        if (!objectPlaced) {
+            updatePlacementPose();
+            updatePlacementIndicator();
+            if (placementPoseValid && Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
+                placeMyObject();
+            }
         }
     }
 
     private void placeMyObject() {
         Instantiate(placeObject, placementPose.position, placementPose.rotation);
+        objectPlaced = true;
     }
 
     private void updatePlacementPose() {
@@ -53,6 +60,25 @@ public class ARTapToPlaceObject : MonoBehaviour
             placementPose.rotation = Quaternion.LookRotation(carmeraBearing);
         } else {
             placementIndicator.SetActive(false);
+        }
+    }
+
+    IEnumerator GetAssetBundle() {
+        UnityWebRequest www = UnityWebRequestAssetBundle.GetAssetBundle("https://storage.googleapis.com/adrop/model.cube");
+        yield return www.SendWebRequest();
+        
+        if(www.isNetworkError || www.isHttpError) {
+            Debug.Log(www.error);
+        }
+        else {
+            AssetBundle bundle = DownloadHandlerAssetBundle.GetContent(www);
+            Debug.Log("get bundle content successfully");
+            UnityEngine.Object[] temp = bundle.LoadAllAssets();
+            placeObject = (GameObject) temp[0];
+            Debug.Log("convert to placeObject successfully");
+            if (placementPoseValid && Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
+                placeMyObject();
+            }
         }
     }
 }
