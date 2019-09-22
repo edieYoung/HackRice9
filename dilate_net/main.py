@@ -56,10 +56,11 @@ def upload():
     if 'image_url' not in url_dict:
         logging.exception('image url is nor specificed')
     else:
-        img_data = requests.get(url_dict['image_url']).content
+        img_data = requests.get(url_dict['image_url'])
         img_path = './image_to_process.jpg'
-        with open(img_path, 'wb') as handler:
-            handler.write(img_data)
+        if img_data.status_code == 200:
+            with open(img_path, 'wb') as handler:
+                handler.write(img_data.content)
     pred = run()
 
     return jsonify({'url': blob.public_url}), 200
